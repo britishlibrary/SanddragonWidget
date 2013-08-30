@@ -2479,11 +2479,11 @@ Seadragon.Job.prototype = {
     }
 }
 
-// development area
+// JP2 development area
 function getImageMetadata(src) {
     var data = null;
 
-    var url = ImageMetadataServer + src.replace(".jp2", "") + "/info.json";
+    var url = ImageServer + src.replace(".jp2", "") + "/info.json";
     var arrActiveX = ["Msxml2.XMLHTTP", "Msxml3.XMLHTTP", "Microsoft.XMLHTTP"];
     if (window.ActiveXObject) {
         for (var i = 0; i < arrActiveX.length; i++) {
@@ -3687,6 +3687,7 @@ Seadragon.Drawer.prototype = {
         this._canvas.style.position = "absolute";
         this._container.style.textAlign = "left";    // explicit left-align
         this._container.appendChild(this._canvas);
+        this.preloadTiles();
     },
     _compareTiles: function (prevBest, tile) {
         if (!prevBest) {
@@ -3846,6 +3847,80 @@ Seadragon.Drawer.prototype = {
         }
         return false;
     },
+
+    preloadTiles: function () {
+        var _abs = Math.abs;
+        var _ceil = Math.ceil;
+        var _floor = Math.floor;
+        var _log = Math.log;
+        var _max = Math.max;
+        var _min = Math.min;
+        var alwaysBlend = this.config.alwaysBlend;
+        var blendTimeMillis = 1000 * this.config.blendTime;
+        var immediateRender = this.config.immediateRender;
+        var wrapHorizontal = this.config.wrapHorizontal;
+        var wrapVertical = this.config.wrapVertical;
+
+        var currentTime = new Date().getTime();
+
+        var viewportBounds = this._viewport.getBounds(true);
+        var viewportTL = viewportBounds.getTopLeft();
+        var viewportBR = viewportBounds.getBottomRight();
+
+        var wrapHorizontal = this.config.wrapHorizontal;
+        var wrapVertical = this.config.wrapVertical;
+
+        if (!wrapHorizontal) {
+            viewportTL.x = _max(viewportTL.x, 0);
+            viewportBR.x = _min(viewportBR.x, 1);
+        }
+        if (!wrapVertical) {
+            viewportTL.y = _max(viewportTL.y, 0);
+            viewportBR.y = _min(viewportBR.y, this._normHeight);
+        }
+
+        var lowestLevel = _max(this._minLevel, _floor(_log(this.config.minZoomImageRatio) / _log(2)));
+        var zeroRatioC = this._viewport.deltaPixelsFromPoints(this._source.getPixelRatio(0), true).x;
+        var highestLevel = _min(this._maxLevel,
+                    _floor(_log(zeroRatioC / MIN_PIXEL_RATIO) / _log(2)));
+
+        lowestLevel = _min(lowestLevel, highestLevel);
+
+        for (var level = highestLevel; level >= lowestLevel; level--) {
+            var tileTL = this._source.getTileAtPoint(level, viewportTL);
+            var tileBR = this._source.getTileAtPoint(level, viewportBR);
+            var numTiles = this._getNumTiles(level);
+            var numTilesX = numTiles.x;
+            var numTilesY = numTiles.y;
+            if (!wrapHorizontal) {
+                tileBR.x = _min(tileBR.x, numTilesX - 1);
+            }
+            if (!wrapVertical) {
+                tileBR.y = _min(tileBR.y, numTilesY - 1);
+            }
+
+            for (var x = tileTL.x; x <= tileBR.x; x++) {
+                for (var y = tileTL.y; y <= tileBR.y; y++) {
+                    var tile = this._getTile(level, x, y, currentTime, numTilesX, numTilesY);
+
+                    if (this._images == null)
+                        this._images = new Array();
+
+                    if (this._images[tile.url] == null)
+                        this.preloadImg(this._images, tile.url);
+                }
+            }
+        }
+    },
+
+    preloadImg: function (images, url) {
+        var img = new Image();
+        img.src = url;
+        img.onload = function () {
+            images[url] = this;
+        };
+    },
+
     // jp2
 
     _clearTiles: function () {
@@ -4072,6 +4147,14 @@ Seadragon.Drawer.prototype = {
             for (var x = tileTL.x; x <= tileBR.x; x++) {
                 for (var y = tileTL.y; y <= tileBR.y; y++) {
                     var tile = this._getTile(level, x, y, currentTime, numTilesX, numTilesY);
+
+                    //jp2 concurrent image pre load
+                    if (this._images != null && this._images[tile.url] != null) {
+                        tile.images = this._images[tile.url];
+                        this._updateAgain = true;
+                    }
+                    // end jp2
+
                     var drawTile = drawLevel;
 
                     this._setCoverage(level, x, y, false);

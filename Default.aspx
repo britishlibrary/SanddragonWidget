@@ -34,7 +34,6 @@
         
         <script type="text/javascript">
             var ImageServer = "";
-            var ImageMetadataServer = "";
             var SanddragonWidgetServer = "";
             var screenWidth = 0;
             var screenHeight = 0;
@@ -105,7 +104,6 @@
 
             this.init = function () {
                 ImageServer = document.getElementById("ImageServer").value;
-                ImageMetadataServer = document.getElementById("ImageMetadataServer").value;
                 SanddragonWidgetServer = document.getElementById("SanddragonWidgetServer").value;
                 setScreenSize();
 
@@ -213,7 +211,6 @@
 <body class="document">
     <form id="form1" runat="server">
         <asp:HiddenField ID="ImageServer" runat="server" />
-        <asp:HiddenField ID="ImageMetadataServer" runat="server" />
         <asp:HiddenField ID="SanddragonWidgetServer" runat="server" />
         <asp:HiddenField ID="NumViews" runat="server" />
         <asp:HiddenField ID="ShowMetadata" runat="server" />

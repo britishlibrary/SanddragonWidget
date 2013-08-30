@@ -24,7 +24,6 @@ namespace SanddragonWidget
         protected void Page_Load(object sender, EventArgs e)
         {
             ImageServer.Value = ConfigurationManager.AppSettings["ImageServer"];
-            ImageMetadataServer.Value = ConfigurationManager.AppSettings["ImageMetadataServer"];
             SanddragonWidgetServer.Value = ConfigurationManager.AppSettings["SanddragonWidgetServer"];
             Page1.Value = string.IsNullOrEmpty(Request["page1"]) ? ConfigurationManager.AppSettings["View1"] : Request["page1"];
             Page2.Value = string.IsNullOrEmpty(Request["page2"]) ? ConfigurationManager.AppSettings["View2"] : Request["page2"];
